@@ -1,9 +1,11 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the Apache License.
 
-function New-RaidOnL1 ($session) {
-	LogMsg "Create raid0 on level 1"
+function New-RaidOnL1 ($session, $interleave) {
+	LogMsg "Create raid0 on level 1 with $interleave Interleave"
 	Invoke-Command -Session $session -ScriptBlock {
+		param($interleave)
+
 		$poolName = "Raid0-Pool"
 		$raidDiskName = "Raid0-Disk"
 
@@ -15,10 +17,10 @@ function New-RaidOnL1 ($session) {
 
 		$disks = Get-PhysicalDisk -CanPool  $true
 		New-StoragePool -StorageSubSystemFriendlyName "Windows Storage*"  -FriendlyName $poolName -PhysicalDisks $disks
-		New-VirtualDisk -FriendlyName $raidDiskName -StoragePoolFriendlyName $poolName  -UseMaximumSize -ResiliencySettingName Simple
+		New-VirtualDisk -FriendlyName $raidDiskName -StoragePoolFriendlyName $poolName  -Interleave $interleave -UseMaximumSize -ResiliencySettingName Simple
 		$diskNumber = ( get-disk | Where-Object{ $_.FriendlyName -eq $raidDiskName } ).Number
 		Set-Disk  $diskNumber -IsOffline $true
-	}
+	} -ArgumentList $interleave
 }
 
 function New-NestedVM ($session, $vmMem, $osVHD, $vmName, $processors, $switchName) {
@@ -90,6 +92,7 @@ function Get-NestedVMIPAdress ($session, $vmName) {
 function New-ShellScriptFile($LogDir,$username)
 {
 	$scriptContent = @"
+echo nameserver 8.8.8.8 >> /etc/resolv.conf
 chmod +x nested_kvm_perf_fio.sh
 ./nested_kvm_perf_fio.sh &> fioConsoleLogs.txt
 . utils.sh
@@ -118,12 +121,13 @@ function Start-TestExecution ($ip, $port, $username, $passwd)
 	RunLinuxCmd -ip $ip -port $port -username $username -password $passwd -command "chmod +x *.sh;chmod +x /root/*.sh" -runAsSudo
 	LogMsg "Executing : StartFioTest.sh"
 	$cmd = "/home/$username/StartFioTest.sh"
-	$testJob = RunLinuxCmd -ip $ip -port  $port -username $username -password $passwd -command $cmd -runAsSudo  -runMaxAllowedTime  24000  -RunInBackground
-	while ( (Get-Job -Id $testJob).State -eq "Running" )
+	RunLinuxCmd -ip $ip -port  $port -username $username -password $passwd -command $cmd -runAsSudo  -runMaxAllowedTime  24000  -RunInBackground
+	$currentStatus = RunLinuxCmd -ip $ip -port  $port -username $username -password $passwd -command "cat /home/$username/state.txt"  -runAsSudo
+	while ( $currentStatus -like "*TestRunning*" -or -not $currentStatus )
 	{
 		$currentStatus = RunLinuxCmd -ip $ip -port  $port -username $username -password $passwd -command "cat /home/$username/state.txt"  -runAsSudo
 		LogMsg "Current test status : $currentStatus"
-		WaitFor -seconds 20
+		WaitFor -seconds 30
 	}
 
 	LogMsg "Executing : ParseFioTestLogs.sh"
@@ -455,6 +459,10 @@ function Main()
 			{
 				$nestedVhdPath = $param.Replace("NestedImageUrl=","").Replace("'","").Trim()
 			}
+			if ( $param -imatch "Interleave=" )
+			{
+				$interleave = [int]$param.Replace("Interleave=","")
+			}
 		}
 
 		if ($testPlatform -eq "Azure") {
@@ -476,7 +484,7 @@ function Main()
 
 		if( $RaidOption -eq "RAID in L1" )
 		{
-			New-RaidOnL1  -session $session
+			New-RaidOnL1  -session $session -interleave $interleave
 		}
 
 		# Download L2 OS vhd
@@ -614,6 +622,9 @@ function Main()
 	{
 		if($session){
 			Remove-PSSession -Session $session
+		}
+		if(!$testResult){
+			$testResult = $resultAborted
 		}
 	}
 

@@ -210,7 +210,7 @@
         <Platform>HyperV</Platform>
         <Category>Performance</Category>
         <Area>Nested</Area>
-        <Tags>nested,hyperv,win</Tags>
+        <Tags>nested,hyperv,windows</Tags>
     </test>
     <test>
         <TestName>NESTED-KVM-NTTTCP-DIFFERENT-L1-NAT</TestName>
@@ -314,8 +314,8 @@
         </TestParameters>
         <Platform>HyperV</Platform>
         <Category>Performance</Category>
-        <Area>Nested</Area>
-        <Tags>nested,hyperv,win</Tags>
+        <Area>Storage</Area>
+        <Tags>nested,hyperv,windows</Tags>
     </test>
     <test>
         <TestName>HYPERV-WINDOWS-NESTED-HYPERV-STORAGE-MULTIDISK</TestName>
@@ -331,7 +331,7 @@
             <param>NestedMemMB=8192</param>
             <param>HostFwdPort=60022</param>
             <!--The raid option allowed values: 'No RAID','RAID in L1','RAID in L2'-->
-            <param>RaidOption='RAID_OPTION'</param>
+            <param>RaidOption='RAID in L1'</param>
             <param>modes='randread randwrite read write'</param>
             <param>startThread=1</param>
             <param>maxThread=1024</param>
@@ -340,12 +340,13 @@
             <param>ioruntime=300</param>
             <param>maxIO=4</param>
             <param>fileSize=8G</param>
+            <param>Interleave=65536</param>
             <param>SkipVerifyKernelLogs=true</param>
         </TestParameters>
         <Platform>HyperV</Platform>
         <Category>Performance</Category>
-        <Area>Nested</Area>
-        <Tags>nested,hyperv,win</Tags>
+        <Area>Storage</Area>
+        <Tags>nested,hyperv,windows</Tags>
     </test>
     <test>
         <TestName>AZURE-WINDOWS-NESTED-HYPERV-STORAGE-SINGLE-DISK</TestName>
@@ -376,8 +377,8 @@
         </TestParameters>
         <Platform>Azure</Platform>
         <Category>Performance</Category>
-        <Area>Nested</Area>
-        <Tags>nested,azure,win</Tags>
+        <Area>Storage</Area>
+        <Tags>nested,azure,windows</Tags>
     </test>
     <test>
         <TestName>AZURE-WINDOWS-NESTED-HYPERV-STORAGE-MULTIDISK</TestName>
@@ -396,7 +397,7 @@
             <param>NestedMemMB=8192</param>
             <param>HostFwdPort=60022</param>
             <!--The raid option allowed values: 'No RAID','RAID in L1','RAID in L2'-->
-            <param>RaidOption='RAID_OPTION'</param>
+            <param>RaidOption='RAID in L1'</param>
             <param>modes='randread randwrite read write'</param>
             <param>startThread=1</param>
             <param>maxThread=1024</param>
@@ -405,11 +406,12 @@
             <param>ioruntime=300</param>
             <param>maxIO=4</param>
             <param>fileSize=8G</param>
+            <param>Interleave=65536</param>
             <param>SkipVerifyKernelLogs=true</param>
         </TestParameters>
         <Platform>Azure</Platform>
         <Category>Performance</Category>
-        <Area>Nested</Area>
-        <Tags>nested,azure,win</Tags>
+        <Area>Storage</Area>
+        <Tags>nested,azure,windows</Tags>
     </test>
 </TestCases>

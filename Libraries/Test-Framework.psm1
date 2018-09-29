@@ -334,7 +334,12 @@ function Check-IP {
                 $vmIP = $vmNic.IPAddresses[0]
                 if ($vmIP) {
                     $vmIP = $([ipaddress]$vmIP.trim()).IPAddressToString
-                    $sshConnected = Test-TCP -testIP $($vmIP) -testport $($VM.SSHPort)
+                    if($IsWindows){
+                        $port = $($VM.RDPPort)
+                    } else {
+                        $port = $($VM.SSHPort)
+                    }
+                    $sshConnected = Test-TCP -testIP $($vmIP) -testport $port
                     if ($sshConnected -eq "True") {
                         $publicIP = $vmIP
                     }
@@ -447,7 +452,10 @@ function Run-Test {
     if ($DeployVMPerEachTest -or $ExecuteSetup) {
         # Note: This method will create $AllVMData global variable
         $isDeployed = DeployVMS -setupType $CurrentTestData.setupType `
-             -Distro $Distro -XMLConfig $XmlConfig
+             -Distro $Distro -XMLConfig $XmlConfig -VMGeneration $VMGeneration
+        if (!$isDeployed) {
+            throw "Could not deploy VMs."
+        }
         if(!$IsWindows){
             Enable-RootUser -RootPassword $VMPassword -VMData $AllVMData `
                 -Username $VMUser -password $VMPassword

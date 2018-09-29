@@ -182,7 +182,9 @@ Function ProvisionVMsForLisa($allVMData, $installPackagesOnRoleNames)
 		LogMsg "Configuring $($vmData.RoleName) for LISA test..."
 		RemoteCopy -uploadTo $vmData.PublicIP -port $vmData.SSHPort -files ".\Testscripts\Linux\enableRoot.sh,.\Testscripts\Linux\enablePasswordLessRoot.sh,.\Testscripts\Linux\provisionLinuxForLisa.sh" -username $user -password $password -upload
 		$Null = RunLinuxCmd -ip $vmData.PublicIP -port $vmData.SSHPort -username $user -password $password -command "chmod +x /home/$user/*.sh" -runAsSudo
-		$rootPasswordSet = RunLinuxCmd -ip $vmData.PublicIP -port $vmData.SSHPort -username $user -password $password -command "/home/$user/enableRoot.sh -password $($password.Replace('"',''))" -runAsSudo
+		$rootPasswordSet = RunLinuxCmd -ip $vmData.PublicIP -port $vmData.SSHPort `
+			-username $user -password $password -runAsSudo `
+			-command ("/home/{0}/enableRoot.sh -password {1}" -f @($user, $password.Replace('"','')))
 		LogMsg $rootPasswordSet
 		if (( $rootPasswordSet -imatch "ROOT_PASSWRD_SET" ) -and ( $rootPasswordSet -imatch "SSHD_RESTART_SUCCESSFUL" ))
 		{
@@ -1018,7 +1020,7 @@ Function SetDistroSpecificVariables($detectedDistro)
 	}
 }
 
-Function DeployVMs ($xmlConfig, $setupType, $Distro, $getLogsIfFailed = $false, $GetDeploymentStatistics = $false, [string]$region = "", [int]$timeOutSeconds = 600)
+Function DeployVMs ($xmlConfig, $setupType, $Distro, $getLogsIfFailed = $false, $GetDeploymentStatistics = $false, [string]$region = "", [int]$timeOutSeconds = 600, $VMGeneration = "1")
 {
 	#Test Platform Azure
 	if ( $TestPlatform -eq "Azure" )
@@ -1027,7 +1029,9 @@ Function DeployVMs ($xmlConfig, $setupType, $Distro, $getLogsIfFailed = $false, 
 	}
 	if ( $TestPlatform -eq "HyperV" )
 	{
-		$retValue = DeployHyperVGroups  -xmlConfig $xmlConfig -setupType $setupType -Distro $Distro -getLogsIfFailed $getLogsIfFailed -GetDeploymentStatistics $GetDeploymentStatistics
+		$retValue = DeployHyperVGroups  -xmlConfig $xmlConfig -setupType $setupType -Distro $Distro `
+										-getLogsIfFailed $getLogsIfFailed -GetDeploymentStatistics $GetDeploymentStatistics `
+										-VMGeneration $VMGeneration
 	}
 	if ( $retValue -and $CustomKernel)
 	{
@@ -2041,11 +2045,11 @@ Function CreateResultSummary($testResult, $checkValues, $testName, $metaData)
 {
 	if ( $metaData )
 	{
-		$resultString = "			$metaData : $testResult <br />"
+		$resultString = "	$metaData : $testResult <br />"
 	}
 	else
 	{
-		$resultString = "			$testResult <br />"
+		$resultString = "	$testResult <br />"
 	}
 	return $resultString
 }
@@ -2217,11 +2221,6 @@ Function GetAllDeployementData($ResourceGroups)
 					$QuickVMNode.SecondInternalIP = "$($nic.Properties.IpConfigurations[0].Properties.PrivateIPAddress)"
 				}
 			}
-
-			if($IsWindows){
-				Add-Member -InputObject $QuickVMNode -MemberType NoteProperty -Name SSHPort -Value 3389 -Force
-			}
-
 			$QuickVMNode.ResourceGroupName = $ResourceGroup
 
 			$QuickVMNode.PublicIP = ($RGIPData | Where-Object { $_.Properties.publicIPAddressVersion -eq "IPv4" }).Properties.ipAddress
